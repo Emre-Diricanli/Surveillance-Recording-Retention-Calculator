@@ -31,9 +31,36 @@ bitrate = megapixels × 1,000,000 × FPS × bits-per-pixel × codec-factor
 - Optional audio adds 96 kbps
 - Daily storage = bitrate × recording-hours, converted to GB; retention = usable storage ÷ daily storage
 
-Estimates are based on bits-per-pixel × FPS × codec factor. Real-world usage varies
-with scene complexity, motion, and encoder tuning — treat the result as a planning
-estimate, not a guarantee.
+## Accuracy & limitations
+
+The arithmetic is exact — bitrate → GB/day → retention is straightforward math.
+All of the uncertainty lives in two hand-tuned constants: the bits-per-pixel
+quality presets and the per-codec compression factors. This is a **first-principles
+estimator, not a model validated against a labeled dataset**, so there is no measured
+"accuracy percentage."
+
+In practice:
+
+- **Good for sizing decisions** (e.g. "do I need a 4 TB or a 12 TB drive?"). Expect
+  results within roughly **±25%** when the quality preset matches the scene and the
+  camera records at a constant bitrate (CBR).
+- **Not exact to the day.** With variable bitrate (VBR) — the common default — a quiet
+  hallway can use a fraction of the bitrate of a busy street at identical settings, so
+  real usage can differ by **2× or more**.
+
+What is **not** modeled, and why estimates drift:
+
+| Factor | Effect |
+| --- | --- |
+| CBR vs VBR | Largest source of error; bits-per-pixel is a single fixed value |
+| Scene complexity / motion | More motion, foliage, rain, or night IR = more bits |
+| Smart codecs (H.264+/H.265+) | Real savings swing ~30–70%; the model uses one average factor |
+| Vendor encoder tuning | Different manufacturers differ at nominally identical settings |
+
+Audio (fixed 96 kbps) and the unit conversions are accurate. Treat the retention figure
+as a **planning estimate, not a guarantee** — to tighten it, measure actual GB/day from a
+few deployed cameras and adjust the `QUALITY_BPP` / `CODEC_FACTOR` constants in
+[`src/lib/storage.ts`](./src/lib/storage.ts) to match your hardware and scenes.
 
 ## Getting started
 
