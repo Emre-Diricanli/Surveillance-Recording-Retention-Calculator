@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Surveillance Recording Retention Calculator
 
-## Getting Started
+A fast, client-side calculator that estimates how many days of footage an NVR/DVR
+can retain, given camera count, storage volume, resolution, frame rate, codec, and
+recording schedule. Generates a shareable "receipt" you can export as a PNG or
+plain-text file.
 
-First, run the development server:
+Built with Next.js 16, React 19, Tailwind CSS v4, and shadcn/ui. All calculations
+run entirely in the browser — no backend, no data leaves the page.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Features
+
+- **Retention estimate** — days/hours of footage from cameras, HDD size, and schedule
+- **Per-stream modeling** — configure mainstream and substream independently, pick which one records
+- **Codec support** — H.264, H.264+, H.265, H.265+ (with realistic compression factors)
+- **Resolutions** — CIF through 12 MP, with megapixel-accurate bitrate math
+- **Quality presets** — low / medium / high bits-per-pixel
+- **Optional audio** — ~96 kbps added to the stream
+- **Exportable receipt** — download a PNG image or a text receipt of any estimate
+
+## How the math works
+
+Bitrate is modeled as:
+
+```
+bitrate = megapixels × 1,000,000 × FPS × bits-per-pixel × codec-factor
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **bits-per-pixel** comes from the quality preset (low `0.05`, medium `0.1`, high `0.18`)
+- **codec-factor** scales H.264 (`1.0`) down for more efficient codecs (H.265+ ≈ `0.4`)
+- Optional audio adds 96 kbps
+- Daily storage = bitrate × recording-hours, converted to GB; retention = usable storage ÷ daily storage
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Estimates are based on bits-per-pixel × FPS × codec factor. Real-world usage varies
+with scene complexity, motion, and encoder tuning — treat the result as a planning
+estimate, not a guarantee.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Getting started
 
-## Learn More
+```bash
+npm install
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Command         | Description                       |
+| --------------- | --------------------------------- |
+| `npm run dev`   | Start the dev server (Turbopack)  |
+| `npm run build` | Production build                  |
+| `npm run start` | Serve the production build        |
+| `npm run lint`  | Run ESLint                        |
 
-## Deploy on Vercel
+## Deploy
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This is a static-friendly Next.js app and deploys cleanly to
+[Vercel](https://vercel.com/) — import the repo and accept the defaults. It will
+also run anywhere Next.js does (`npm run build && npm run start`).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## License
+
+[MIT](./LICENSE) © Emre Diricanli
