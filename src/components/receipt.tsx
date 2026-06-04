@@ -3,6 +3,7 @@
 import { forwardRef } from "react";
 import {
   CODEC_LABEL,
+  MODE_LABEL,
   RESOLUTIONS,
   formatDays,
   type CalcInput,
@@ -89,6 +90,7 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(function Receipt
         <Row label="Cameras" value={`${input.cameras}`} />
         <Row label="HDD volume" value={`${input.hddTB} TB`} />
         <Row label="Codec" value={CODEC_LABEL[input.codec]} />
+        <Row label="Bitrate mode" value={MODE_LABEL[input.bitrateMode]} />
         <Row label="Recording" value={`${input.hoursPerDay} h/day`} />
         <Row label="Audio" value={input.audio ? "on (~96 kbps)" : "off"} />
       </div>
@@ -138,7 +140,7 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(function Receipt
       <div className="my-4 border-t border-dashed border-zinc-400" />
 
       <Centered className="text-[10px] leading-relaxed text-zinc-500">
-        Estimate based on bits-per-pixel × FPS × codec factor.
+        Estimate based on bits-per-pixel × FPS × codec & bitrate-mode factor.
         <br />
         Actual usage varies with scene complexity and tuning.
         <div className="mt-2">— Surveillance Recording Retention Calculator —</div>

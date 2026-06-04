@@ -34,9 +34,11 @@ import {
 
 import {
   CODEC_LABEL,
+  MODE_LABEL,
   RESOLUTIONS,
   calculate,
   formatDays,
+  type BitrateMode,
   type Codec,
   type Quality,
   type Resolution,
@@ -174,6 +176,7 @@ export default function Calculator() {
   const [hddTB, setHddTB] = useState(8);
   const [hoursPerDay, setHoursPerDay] = useState(24);
   const [codec, setCodec] = useState<Codec>("h265");
+  const [bitrateMode, setBitrateMode] = useState<BitrateMode>("vbr");
   const [audio, setAudio] = useState(false);
   const [recordStream, setRecordStream] = useState<StreamChoice>("mainstream");
   const [exportOpen, setExportOpen] = useState(false);
@@ -195,12 +198,13 @@ export default function Calculator() {
       hddTB,
       hoursPerDay,
       codec,
+      bitrateMode,
       audio,
       recordStream,
       mainstream,
       substream,
     }),
-    [cameras, hddTB, hoursPerDay, codec, audio, recordStream, mainstream, substream]
+    [cameras, hddTB, hoursPerDay, codec, bitrateMode, audio, recordStream, mainstream, substream]
   );
 
   const result = useMemo(() => calculate(input), [input]);
@@ -215,6 +219,7 @@ export default function Calculator() {
         hddTB,
         hoursPerDay,
         codec,
+        bitrateMode,
         audio,
         recordStream,
         mainstream,
@@ -222,7 +227,7 @@ export default function Calculator() {
       });
       return { cameras: camCount, days: Number(r.days.toFixed(1)) };
     });
-  }, [cameras, hddTB, hoursPerDay, codec, audio, recordStream, mainstream, substream]);
+  }, [cameras, hddTB, hoursPerDay, codec, bitrateMode, audio, recordStream, mainstream, substream]);
 
   return (
     <div className="grid gap-6 md:grid-cols-5">
@@ -284,25 +289,49 @@ export default function Calculator() {
               </Select>
             </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="hours">Recording hours / day</Label>
-                <span className="text-sm tabular-nums text-muted-foreground">
-                  {hoursPerDay} h
-                </span>
+              <Label>Bitrate mode</Label>
+              <div className="inline-flex w-full rounded-lg border bg-card p-1 text-sm">
+                {(["cbr", "vbr"] as BitrateMode[]).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setBitrateMode(m)}
+                    className={
+                      "flex-1 rounded-md px-3 py-1.5 transition-colors " +
+                      (bitrateMode === m
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground")
+                    }
+                  >
+                    {MODE_LABEL[m]}
+                  </button>
+                ))}
               </div>
-              <Slider
-                id="hours"
-                min={1}
-                max={24}
-                step={1}
-                value={[hoursPerDay]}
-                onValueChange={(v) =>
-                  setHoursPerDay(
-                    Array.isArray(v) ? v[0] ?? hoursPerDay : v
-                  )
-                }
-              />
+              <p className="text-xs text-muted-foreground">
+                {bitrateMode === "vbr"
+                  ? "Variable — averages lower on static scenes"
+                  : "Constant — fixed bitrate budget"}
+              </p>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="hours">Recording hours / day</Label>
+              <span className="text-sm tabular-nums text-muted-foreground">
+                {hoursPerDay} h
+              </span>
+            </div>
+            <Slider
+              id="hours"
+              min={1}
+              max={24}
+              step={1}
+              value={[hoursPerDay]}
+              onValueChange={(v) =>
+                setHoursPerDay(Array.isArray(v) ? v[0] ?? hoursPerDay : v)
+              }
+            />
           </div>
 
           <div className="space-y-3">
@@ -364,7 +393,7 @@ export default function Calculator() {
             <CardTitle>Estimated retention</CardTitle>
             <CardDescription>
               {cameras} camera{cameras === 1 ? "" : "s"} · {hddTB} TB ·{" "}
-              {CODEC_LABEL[codec]}
+              {CODEC_LABEL[codec]} · {MODE_LABEL[bitrateMode]}
             </CardDescription>
           </div>
           <Button

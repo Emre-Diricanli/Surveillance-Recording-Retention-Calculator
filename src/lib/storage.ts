@@ -13,6 +13,8 @@ export type Quality = "low" | "medium" | "high";
 
 export type Codec = "h264" | "h264p" | "h265" | "h265p";
 
+export type BitrateMode = "cbr" | "vbr";
+
 export const RESOLUTIONS: Record<Resolution, { label: string; megapixels: number }> = {
   CIF: { label: "CIF (0.1 MP)", megapixels: 0.1 },
   VGA: { label: "VGA (0.3 MP)", megapixels: 0.3 },
@@ -25,17 +27,35 @@ export const RESOLUTIONS: Record<Resolution, { label: string; megapixels: number
   "12MP": { label: "12 MP", megapixels: 12.0 },
 };
 
+// Bits-per-pixel quality presets. Calibrated against a sample of real
+// deployed cameras (retail/static scenes), whose implied bpp clustered
+// around 0.04–0.09 — far below the textbook 0.1–0.18 figures the model
+// originally used, which overestimated H.264 bitrate by ~2–3x.
 export const QUALITY_BPP: Record<Quality, number> = {
-  low: 0.05,
-  medium: 0.1,
-  high: 0.18,
+  low: 0.035,
+  medium: 0.06,
+  high: 0.085,
 };
 
+// Per-codec compression multipliers relative to H.264 (= 1.0). Re-tuned so
+// H.265 lands ~30% below H.264 (rather than ~45%), matching observed data.
 export const CODEC_FACTOR: Record<Codec, number> = {
   h264: 1.0,
-  h264p: 0.5,
-  h265: 0.55,
-  h265p: 0.4,
+  h264p: 0.6,
+  h265: 0.7,
+  h265p: 0.5,
+};
+
+// Bitrate mode multiplier. CBR holds a fixed budget; VBR averages lower on
+// typical (largely static) surveillance scenes, so it gets a discount.
+export const MODE_FACTOR: Record<BitrateMode, number> = {
+  cbr: 1.0,
+  vbr: 0.85,
+};
+
+export const MODE_LABEL: Record<BitrateMode, string> = {
+  cbr: "CBR",
+  vbr: "VBR",
 };
 
 export const CODEC_LABEL: Record<Codec, string> = {
@@ -44,6 +64,11 @@ export const CODEC_LABEL: Record<Codec, string> = {
   h265: "H.265",
   h265p: "H.265+",
 };
+
+// Fixed per-stream overhead (encoder headers, I-frames, container) that does
+// not scale with resolution. Keeps low-resolution substreams from being
+// underestimated by the purely pixel-proportional term.
+export const FLOOR_MBPS = 0.1;
 
 export const AUDIO_KBPS = 96;
 
@@ -60,6 +85,7 @@ export interface CalcInput {
   hddTB: number;
   hoursPerDay: number;
   codec: Codec;
+  bitrateMode: BitrateMode;
   audio: boolean;
   recordStream: StreamChoice;
   mainstream: StreamConfig;
@@ -83,16 +109,21 @@ export interface CalcResult {
   hours: number;
 }
 
-function streamBps(stream: StreamConfig, codec: Codec): number {
+function streamBps(
+  stream: StreamConfig,
+  codec: Codec,
+  mode: BitrateMode
+): number {
   const px = RESOLUTIONS[stream.resolution].megapixels * 1_000_000;
   const bpp = QUALITY_BPP[stream.quality];
-  return px * stream.fps * bpp * CODEC_FACTOR[codec];
+  const variable = px * stream.fps * bpp * CODEC_FACTOR[codec] * MODE_FACTOR[mode];
+  return FLOOR_MBPS * 1_000_000 + variable;
 }
 
 export function calculate(input: CalcInput): CalcResult {
   const recordedStream =
     input.recordStream === "mainstream" ? input.mainstream : input.substream;
-  const recordedBps = streamBps(recordedStream, input.codec);
+  const recordedBps = streamBps(recordedStream, input.codec, input.bitrateMode);
   const audioBps = input.audio ? AUDIO_KBPS * 1000 : 0;
 
   const totalBps = recordedBps + audioBps;
@@ -107,8 +138,8 @@ export function calculate(input: CalcInput): CalcResult {
   const usableGB = input.hddTB * 1000;
   const days = totalGBPerDay > 0 ? usableGB / totalGBPerDay : 0;
 
-  const mainBpsAll = streamBps(input.mainstream, input.codec);
-  const subBpsAll = streamBps(input.substream, input.codec);
+  const mainBpsAll = streamBps(input.mainstream, input.codec, input.bitrateMode);
+  const subBpsAll = streamBps(input.substream, input.codec, input.bitrateMode);
 
   return {
     mainstream: { bitrateMbps: mainBpsAll / 1_000_000, gbPerDay: toGB(mainBpsAll) },
