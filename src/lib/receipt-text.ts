@@ -1,5 +1,6 @@
 import {
   CODEC_LABEL,
+  MODE_LABEL,
   RESOLUTIONS,
   formatDays,
   type CalcInput,
@@ -47,6 +48,7 @@ export function buildReceiptText(
   lines.push(row("Cameras", String(input.cameras)));
   lines.push(row("HDD volume", `${input.hddTB} TB`));
   lines.push(row("Codec", CODEC_LABEL[input.codec]));
+  lines.push(row("Bitrate mode", MODE_LABEL[input.bitrateMode]));
   lines.push(row("Recording", `${input.hoursPerDay} h/day`));
   lines.push(row("Audio", input.audio ? "on (~96kbps)" : "off"));
   lines.push(line());
@@ -69,7 +71,7 @@ export function buildReceiptText(
     )
   );
   lines.push(line());
-  lines.push(center("Estimate based on bpp x fps x codec."));
+  lines.push(center("Estimate: bpp x fps x codec x mode."));
   lines.push(center("Actual usage varies with scene."));
   lines.push(center("-- Surveillance Recording --"));
   lines.push(center("-- Retention Calculator --"));
