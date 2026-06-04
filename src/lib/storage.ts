@@ -27,14 +27,26 @@ export const RESOLUTIONS: Record<Resolution, { label: string; megapixels: number
   "12MP": { label: "12 MP", megapixels: 12.0 },
 };
 
-// Bits-per-pixel quality presets. Calibrated against a sample of real
-// deployed cameras (retail/static scenes), whose implied bpp clustered
-// around 0.04–0.09 — far below the textbook 0.1–0.18 figures the model
-// originally used, which overestimated H.264 bitrate by ~2–3x.
+// Bits-per-pixel quality presets. Re-calibrated (2026-06) against measured
+// on-disk recordings from 24 deployed cameras across 5 stores — see
+// CALIBRATION in the README. The recorded bitrates implied a midrange bpp
+// clustered around 0.015–0.055 (median ~0.03) for "medium", far below the
+// previous 0.06. The values below sit slightly ABOVE the measured median on
+// purpose: for a storage planner, erring high means over-estimating bytes /
+// under-estimating retention, which is the safe direction (you won't run out
+// of disk sooner than predicted). Across the calibration fleet the model now
+// predicts ~1.3x the measured rate at the median — deliberately conservative.
+//
+// Caveat: real bitrate is sub-linear in pixel count (large sensors compress
+// much more efficiently per pixel than tiny ones), which this pixel-linear
+// model can't fully capture. It is therefore most accurate in the midrange
+// and conservative (over-predicts) for very high-res, efficiently-encoded
+// streams. "high" is anchored on a single 1440p sample, so treat it as a
+// rough upper bound rather than a tight fit.
 export const QUALITY_BPP: Record<Quality, number> = {
-  low: 0.035,
-  medium: 0.06,
-  high: 0.085,
+  low: 0.022,
+  medium: 0.035,
+  high: 0.16,
 };
 
 // Per-codec compression multipliers relative to H.264 (= 1.0). Re-tuned so
@@ -67,8 +79,10 @@ export const CODEC_LABEL: Record<Codec, string> = {
 
 // Fixed per-stream overhead (encoder headers, I-frames, container) that does
 // not scale with resolution. Keeps low-resolution substreams from being
-// underestimated by the purely pixel-proportional term.
-export const FLOOR_MBPS = 0.1;
+// underestimated by the purely pixel-proportional term. Nudged up from 0.10
+// to 0.15 during the 2026-06 calibration: several deployed low-res substreams
+// recorded at ~0.1 Mbps regardless of pixel count, i.e. essentially floor.
+export const FLOOR_MBPS = 0.15;
 
 export const AUDIO_KBPS = 96;
 

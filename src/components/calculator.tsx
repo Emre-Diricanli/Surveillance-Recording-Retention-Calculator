@@ -497,6 +497,18 @@ export default function Calculator() {
               </ResponsiveContainer>
             </div>
           </div>
+
+          <Separator />
+
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Calibrated (Jun 2026) against measured on-disk recordings from 24
+            deployed cameras across 5 stores. Estimates are intentionally a
+            touch conservative — they lean toward over-estimating storage (and
+            under-estimating retention), so you&apos;re unlikely to run out of
+            disk sooner than predicted. Real-world bitrate varies with scene
+            motion and encoder tuning; treat the result as a planning figure,
+            not a guarantee.
+          </p>
         </CardContent>
       </Card>
 
